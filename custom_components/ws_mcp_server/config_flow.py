@@ -15,10 +15,14 @@ from homeassistant.helpers.selector import (
 from homeassistant.config_entries import ConfigEntry
 from .session import SessionManager
 
-from .const import DOMAIN
+from .const import DOMAIN, MA_BASE_URL, MA_API_TOKEN, MA_DEFAULT_QUEUE_ID, MA_DEFAULT_PLAYER_ID
 
 CONF_CLIENT_ENDPOINT = "client_endpoint"
 CONF_MODE = "control_mode"
+CONF_MASS_URL = "mass_url"
+CONF_MASS_TOKEN = "mass_token"
+CONF_MASS_QUEUE_ID = "mass_queue_id"
+CONF_MASS_PLAYER_ID = "mass_player_id"
 MORE_INFO_URL = "https://www.home-assistant.io/integrations/mcp_server/#configuration"
 DEFAULT_NAME = "WebSocket MCP Server"
 _LOGGER = logging.getLogger(__name__)
@@ -78,12 +82,70 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
                             multiple=True,
                         )
                     ),
+                    # ---- Music Assistant 直连配置（可选，留空则使用默认值）----
+                    vol.Optional(
+                        CONF_MASS_URL,
+                        default=MA_BASE_URL,
+                        description={"suggested_value": MA_BASE_URL},
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_TOKEN,
+                        default=MA_API_TOKEN,
+                        description={"suggested_value": MA_API_TOKEN},
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_QUEUE_ID,
+                        default=MA_DEFAULT_QUEUE_ID,
+                        description={"suggested_value": MA_DEFAULT_QUEUE_ID},
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_PLAYER_ID,
+                        default=MA_DEFAULT_PLAYER_ID,
+                        description={"suggested_value": MA_DEFAULT_PLAYER_ID},
+                    ): selector.TextSelector(),
                 }
             ),
             description_placeholders={"more_info_url": MORE_INFO_URL},
             errors=errors,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Allow editing the MA connection on an already-loaded entry."""
+        entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            new_data = {**entry.data, **user_input}
+            return self.async_update_reload_and_abort(
+                entry, data=new_data, reload_even_if_entry_is_unchanged=False
+            )
 
-
+        cur = entry.data
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_MASS_URL,
+                        default=cur.get(CONF_MASS_URL, MA_BASE_URL),
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_TOKEN,
+                        default=cur.get(CONF_MASS_TOKEN, MA_API_TOKEN),
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_QUEUE_ID,
+                        default=cur.get(CONF_MASS_QUEUE_ID, MA_DEFAULT_QUEUE_ID),
+                    ): selector.TextSelector(),
+                    vol.Optional(
+                        CONF_MASS_PLAYER_ID,
+                        default=cur.get(CONF_MASS_PLAYER_ID, MA_DEFAULT_PLAYER_ID),
+                    ): selector.TextSelector(),
+                }
+            ),
+            errors=errors,
+        )
 
