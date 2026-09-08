@@ -32,6 +32,10 @@ This project is **forked from** [c1pher-cn/ha-mcp-for-xiaozhi](https://github.co
 ---
 ### Function demonstration（please like it for support, or post a few comments）
 
+<a href="https://www.bilibili.com/video/BV1YPbG6FEpH/" > ha-mcp-for-xiaozhi + mass plugin setup demo video </a>
+
+<a href="https://www.bilibili.com/video/BV1jibG6ME9M/" > ha-mcp-for-xiaozhi + mass plugin feature demo video </a>
+
 <a href="https://www.bilibili.com/video/BV1XdjJzeEwe" > Access demonstration video </a>
 
 <a href="https://www.bilibili.com/video/BV18DM8zuEYV" > Control TV presentation (via custom script)</a>
@@ -65,17 +69,47 @@ Make sure HACS is installed in Home Assistant.
 
 
 
-Next > Please fill in the Xiaozhi MCP access point address, select the required MCP > Submit. 
+Next > Fill in the MA service address, MA long-lived token, MA queue ID, and MA player ID. If the server connection test succeeds, proceed to the next step of configuration.
+![alt text](docs/assets/step1.png)
+
+
+Next > Please fill in the Xiaozhi MCP access point address, select the required MCP > Submit.
 
 Note that the Assist in the llm_hass_api checkbox is the HA built-in function, 
 and the other options are other MCP servers you had connected in HomeAssistant (you can directly proxy to Xiaozhi here)
+![alt text](docs/assets/step2.png)
 
-<img width="774" height="632" alt="image" src="https://github.com/user-attachments/assets/38e98fde-8a6c-4434-932c-840c25dc6e28" />
 
 
-Configuration is complete! Wait a minute and go to Xiaozhi's access point page and click refresh to check the
+Configuration is complete! Wait a minute and go to Xiaozhi's access point page and click refresh to check the status.
 
-![bd06b555b9e5c24fbf819c43397c97ee](https://github.com/user-attachments/assets/ace79a44-6197-4e94-8c49-ab9048ed4502)
+
+
+![alt text](docs/assets/skills.png)
+
+
+Finally > On the XiaoZhi AI console page, add a character introduction (system prompt). This step is optional.
+![alt text](docs/assets/prompt.png)
+[Music Assistant Music Control Mandatory Rules]
+You parse the user's spoken music intent and call the corresponding ma_xxx tool; Music Assistant is only responsible for execution.
+Intent mapping:
+1. Play xxx song / Play a xxx → ma_play(query="xxx", media_type="track")
+2. Play xxx album → ma_play(query="xxx", media_type="album")
+3. Play xxx playlist → ma_play(query="xxx", media_type="playlist")
+4. Play xxx artist → ma_play(query="xxx", media_type="artist")
+5. Next track → ma_control(command="next")
+6. Previous track → ma_control(command="previous")
+7. Pause → ma_control(command="pause")
+8. Resume playback → ma_control(command="play")
+9. Stop → ma_control(command="stop")
+10. Set volume to xx → ma_volume(level=xx)
+11. Repeat one / Repeat all / Repeat off → ma_repeat(mode="one"/"all"/"off")
+12. Shuffle on/off → ma_shuffle(on=true/false)
+Mandatory constraints:
+① Music commands must NOT call hass_conversation / HA scripts / entity flows; only ma_xxx is allowed.
+② The query for ma_play should only extract the core content — no emoji, no prefix polishing.
+③ Do not fabricate results; directly read back the text returned by ma_xxx.
+④ For non-music commands, use other HA MCP tools normally.
 
 
 

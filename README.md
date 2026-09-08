@@ -40,6 +40,10 @@ Homeassistant MCP server for 小智AI，直连小智AI官方服务器。
 ---
 ### 功能演示（为爱发电不易，有币投投币、没币点点赞、刷几个弹幕也行）
 
+<a href="https://www.bilibili.com/video/BV1YPbG6FEpH/" > ha-mcp-for-xiaozhi+mass插件接入演示视频 </a>
+
+<a href="https://www.bilibili.com/video/BV1jibG6ME9M/" > ha-mcp-for-xiaozhi+mass插件功能效果演示视频 </a>
+
 <a href="https://www.bilibili.com/video/BV1XdjJzeEwe" > 接入演示视频 </a>
 
 <a href="https://www.bilibili.com/video/BV18DM8zuEYV" > 控制电视演示（通过自定义script实现）</a>
@@ -74,17 +78,46 @@ Homeassistant MCP server for 小智AI，直连小智AI官方服务器。
 
 
 
+下一步 >填写MA服务地址，MA长期令牌，MA队列ID，MA播放器ID 。服务器连通成功回进入下一步配置。
+![alt text](docs/assets/step1.png)
+
+
 下一步 > 请填写小智MCP接入点地址、选择需要的MCP > 提交。
 
 注意llm_hass_api 复选框里  Assist 就是ha自带的function，其他选项是你在HomeAssistant里接入的其他mcp server（可以在这里直接代理给小智）
+![alt text](docs/assets/step2.png)
 
-![alt text](docs/assets/hacs-sss.png)
 
 
 配置完成！！！稍等一分钟后到小智的接入点页面点击刷新，检查状态。
 
-![bd06b555b9e5c24fbf819c43397c97ee](https://github.com/user-attachments/assets/ace79a44-6197-4e94-8c49-ab9048ed4502)
 
+
+![alt text](docs/assets/skills.png)
+
+
+最后 >在小智ai控制台页面 增加 角色介绍（提示词）。此步骤为可选项。
+![alt text](docs/assets/prompt.png)
+【Music Assistant 音乐控制强制规则】
+由你解析用户音乐口语意图，调用对应 ma_xxx 工具，Music Assistant 只负责执行。
+意图映射：
+1. 播放xxx歌曲 / 来一首xxx → ma_play(query="xxx", media_type="track")
+2. 播放xxx专辑 → ma_play(query="xxx", media_type="album")
+3. 播放xxx歌单/播放列表 → ma_play(query="xxx", media_type="playlist")
+4. 播放xxx艺人 → ma_play(query="xxx", media_type="artist")
+5. 下一曲/下一首/切歌 → ma_control(command="next")
+6. 上一曲/上一首 → ma_control(command="previous")
+7. 暂停 → ma_control(command="pause")
+8. 继续播放 → ma_control(command="play")
+9. 停止 → ma_control(command="stop")
+10. 调到xx音量 → ma_volume(level=xx)
+11. 单曲循环/列表循环/关闭循环 → ma_repeat(mode="one"/"all"/"off")
+12. 随机播放开/关 → ma_shuffle(on=true/false)
+强制约束：
+① 音乐指令禁止调用 hass_conversation / HA 脚本 / 实体流程，只允许 ma_xxx。
+② ma_play 的 query 只提取核心内容，禁止 emoji、不要前缀润色。
+③ 不要编造结果，直接朗读 ma_xxx 返回的文本。
+④ 非音乐类指令正常使用 HA 其他 MCP 工具。
 
 
 ---
