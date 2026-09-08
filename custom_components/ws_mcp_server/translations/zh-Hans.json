@@ -2,15 +2,21 @@
   "config": {
     "step": {
       "user": {
-        "title": "配置小智MCP接入点",
-        "description": "输入 WebSocket 客户端地址以连接 MCP。",
+        "title": "配置 Music Assistant 连接",
+        "description": "填写 Music Assistant 地址与 Token（可选）。点击「提交」会先进行连通性测试：连通成功进入下一步，否则提示失败原因。",
+        "data": {
+          "mass_url": "MA 地址",
+          "mass_token": "MA API Token",
+          "mass_queue_id": "MA 队列 ID（可选）",
+          "mass_player_id": "MA 播放器 ID（可选）"
+        }
+      },
+      "finish": {
+        "title": "配置 Home Assistant 接入点",
+        "description": "填写小智 MCP 接入点地址，并选择要暴露的 LLM API。",
         "data": {
           "client_endpoint": "小智MCP接入点地址",
-          "name": "名称",
           "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]"
-        },
-        "data_description": {
-          "llm_hass_api": "The method for controlling Home Assistant to expose with the Model Context Protocol."
         }
       }
     },

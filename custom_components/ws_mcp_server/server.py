@@ -51,6 +51,15 @@ def _get_ma_config(ma_config: dict | None) -> dict:
     }
 
 
+class MAError(Exception):
+    """Music Assistant 命令执行失败时的自定义异常。"""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status = status
+
+
 async def _call_ma(cfg: dict, command: str, args: dict | None) -> Any:
     """Call a Music Assistant command via its single HTTP endpoint.
 
@@ -69,24 +78,70 @@ async def _call_ma(cfg: dict, command: str, args: dict | None) -> Any:
         "command": command,
         "args": args or {},
     }
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(url, json=payload, headers=headers)
-        resp.raise_for_status()
-        data = resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPStatusError as err:
+        status = err.response.status_code
+        body = (err.response.text or "").strip()
+        if status in (401, 403):
+            msg = (
+                "Music Assistant 鉴权失败，请检查集成配置里的 "
+                "MA API Token 是否正确（需 long-lived token）。"
+            )
+        elif status == 500:
+            msg = (
+                "Music Assistant 执行命令失败（500）。通常是目标播放器"
+                "离线或无法启动播放，请在 MA 中确认该播放器可用，"
+                "或在集成配置里指定正确的队列/播放器 ID。"
+            )
+        else:
+            msg = f"Music Assistant 返回错误 {status}：{body or '无详细信息'}"
+        raise MAError(msg, status) from err
+    except httpx.RequestError as err:
+        raise MAError(
+            f"无法连接 Music Assistant（{cfg.get('base_url')}），"
+            f"请检查地址与网络：{err}"
+        ) from err
     if isinstance(data, dict) and "result" in data:
         return data["result"]
     return data
 
 
 async def _resolve_ids(cfg: dict) -> dict:
-    """Auto-discover queue/player ids when not configured."""
+    """Auto-discover queue/player ids when not configured.
+
+    优先选择「在线(available)」播放器对应的队列，跳过离线播放器；
+    若无法从在线列表中确定，则退回到首个队列。最终选定的队列会写日志。
+    """
     if not cfg["queue_id"]:
+        available_ids: set[str] = set()
+        try:
+            players = await _call_ma(cfg, "players/all", {})
+            if isinstance(players, list):
+                available_ids = {
+                    p.get("player_id") for p in players if p.get("available")
+                }
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("MA discover players failed: %s", err)
+
         try:
             queues = await _call_ma(cfg, "player_queues/all", {})
             if isinstance(queues, list) and queues:
-                cfg["queue_id"] = (
-                    queues[0].get("queue_id") or queues[0].get("id")
-                )
+                chosen = None
+                for q in queues:
+                    qid = q.get("queue_id") or q.get("id")
+                    if qid in available_ids:
+                        chosen = qid
+                        break
+                if not chosen:
+                    chosen = (
+                        queues[0].get("queue_id") or queues[0].get("id")
+                    )
+                cfg["queue_id"] = chosen
+                _LOGGER.info("MA auto-discovered queue_id=%s", cfg["queue_id"])
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("MA discover via player_queues/all failed: %s", err)
     if not cfg["player_id"] and cfg["queue_id"]:
@@ -110,6 +165,7 @@ def _txt(text: str) -> types.TextContent:
 async def _handle_ma_tool(name: str, arguments: dict, ma_config: dict | None):
     """Dispatch a Music Assistant tool call and return MCP text content."""
     cfg = _get_ma_config(ma_config)
+    qid = pid = None
     try:
         cfg = await _resolve_ids(cfg)
         qid = cfg["queue_id"]
@@ -207,6 +263,11 @@ async def _handle_ma_tool(name: str, arguments: dict, ma_config: dict | None):
             return [_txt(f"当前播放队列：{text[:1500]}")]
 
         return [_txt(f"未知 MA 工具：{name}")]
+    except MAError as err:
+        target = pid or qid
+        suffix = f"（目标播放器：{target}）" if target else ""
+        _LOGGER.error("MA tool %s failed: %s", name, err)
+        return [_txt(err.message + suffix)]
     except Exception as err:  # noqa: BLE001
         _LOGGER.error("MA tool %s failed: %s", name, err)
         return [_txt(f"操作失败：{err}")]

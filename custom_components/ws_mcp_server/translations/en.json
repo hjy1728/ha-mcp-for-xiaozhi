@@ -2,15 +2,21 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure Xiaozhi MCP Access Point",
-        "description": "Input WebSocket Access Point For XiaoZhi AI",
+        "title": "Configure Music Assistant connection",
+        "description": "Fill in the Music Assistant URL and Token (optional). Submitting runs a connectivity test: success continues to the next step, failure shows the reason.",
+        "data": {
+          "mass_url": "MA URL",
+          "mass_token": "MA API Token",
+          "mass_queue_id": "MA Queue ID (optional)",
+          "mass_player_id": "MA Player ID (optional)"
+        }
+      },
+      "finish": {
+        "title": "Configure Home Assistant access point",
+        "description": "Fill in the XiaoZhi MCP access point and choose the LLM API(s) to expose.",
         "data": {
           "client_endpoint": "WebSocket Access Point",
-          "name": "name",
           "llm_hass_api": "[%key:common::config_flow::data::llm_hass_api%]"
-        },
-        "data_description": {
-          "llm_hass_api": "The method for controlling Home Assistant to expose with the Model Context Protocol."
         }
       }
     },
