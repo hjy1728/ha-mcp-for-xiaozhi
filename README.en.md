@@ -163,17 +163,6 @@ After configuration, wait a moment, then you can ask XiaoZhi things like "play å
  4.If the process correctly calls the built-in function of HA, you can open the debug log of this plug-in to observe the actual execution status.
  
 ---
-<a href="https://buymeacoffee.com/c1pher_cn" target="_blank" rel="noreferrer noopener">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee">
-</a>
-
-<a href="https://star-history.com/#c1pher-cn/ha-mcp-for-xiaozhi&Date"></a>
-
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=c1pher-cn/ha-mcp-for-xiaozhi&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=c1pher-cn/ha-mcp-for-xiaozhi&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=c1pher-cn/ha-mcp-for-xiaozhi&type=Date" />
- </picture>
 </a>
 
 
