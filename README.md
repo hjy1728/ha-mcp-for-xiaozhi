@@ -58,9 +58,8 @@ Homeassistant MCP server for 小智AI，直连小智AI官方服务器。
 
 1、打开HACS 添加自定义仓库 地址填 https://github.com/hjy1728/ha-mcp-for-xiaozhi.git   类型填 集成
 
-2.HACS, 搜索 xiaozhi 或 ha-mcp-for-xiaozhi
-
-![alt text](docs/assets/hacs-search.png)
+2.HACS, 搜索 xiaozhi 或 ha-mcp-for-xiaozhi+mass
+![alt text](docs/assets/hacs-11.png)
 
 2.下载插件
 

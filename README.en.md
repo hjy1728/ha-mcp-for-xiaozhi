@@ -50,9 +50,9 @@ Make sure HACS is installed in Home Assistant.
 
 1. Open HACS and add a custom repository with URL `https://github.com/hjy1728/ha-mcp-for-xiaozhi.git` and category `Integration`.
 
-2. In HACS, search for `xiaozhi` or `ha-mcp-for-xiaozhi`.
+2. In HACS, search for `xiaozhi` or `ha-mcp-for-xiaozhi+mass`.
 
-![alt text](docs/assets/hacs-search.png)
+![alt text](docs/assets/hacs-11.png)
 
 3. Download the component.
 
