@@ -22,7 +22,8 @@
     },
     "error": {
       "llm_api_required": "You must choose one api at least",
-      "single_instance_allowed": "single_instance_allowed"
+      "single_instance_allowed": "single_instance_allowed",
+      "ma_connection_failed": "Cannot connect to Music Assistant: {error_msg}"
     },
     "abort": {
       "single_instance_allowed": "single_instance_allowed"

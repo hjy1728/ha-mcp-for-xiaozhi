@@ -2,7 +2,7 @@ import voluptuous as vol
 from typing import Any
 import logging
 import httpx
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_LLM_HASS_API
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import llm,selector
@@ -37,10 +37,10 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Step 1: Music Assistant 连接配置 + 连通性测试。"""
         errors: dict[str, str] = {}
-        description = None
+        placeholders: dict[str, str] = {"more_info_url": MORE_INFO_URL}
         if user_input is not None:
             url = (user_input.get(CONF_MASS_URL) or "").strip()
             token = (user_input.get(CONF_MASS_TOKEN) or "").strip()
@@ -50,7 +50,8 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._ma_input = dict(user_input)
                     return await self.async_step_finish()
                 # 测试失败：留在当前步并提示失败原因
-                description = f"❌ 连通失败：{msg}"
+                errors["base"] = "ma_connection_failed"
+                placeholders["error_msg"] = msg
             else:
                 # 未同时填写 MA 地址与 Token，跳过测试直接进入下一步
                 self._ma_input = dict(user_input)
@@ -81,18 +82,20 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
                     ): selector.TextSelector(),
                 }
             ),
-            description_placeholders={"more_info_url": MORE_INFO_URL},
-            description=description,
+            description_placeholders=placeholders,
             errors=errors,
         )
 
     async def async_step_finish(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Step 2: Home Assistant 接入点 + LLM API（预填 MA 配置）。"""
         errors: dict[str, str] = {}
         ma_input = getattr(self, "_ma_input", {}) or {}
-        llm_apis = {api.id: api.name for api in llm.async_get_apis(self.hass)}
+        apis = llm.async_get_apis(self.hass)
+        if hasattr(apis, "__await__"):
+            apis = await apis
+        llm_apis = {api.id: api.name for api in apis}
         if user_input is not None:
             await self.async_set_unique_id(
                 f"{user_input[CONF_LLM_HASS_API]}_{user_input[CONF_CLIENT_ENDPOINT]}"
@@ -167,20 +170,19 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Allow editing the MA connection on an already-loaded entry."""
         entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
         errors: dict[str, str] = {}
-        description = None
         if user_input is not None:
             url = (user_input.get(CONF_MASS_URL) or "").strip()
             token = (user_input.get(CONF_MASS_TOKEN) or "").strip()
             if url and token:
                 ok, msg = await self._async_test_ma_connection(url, token)
                 if not ok:
-                    description = f"❌ 连通失败：{msg}"
+                    errors["base"] = "ma_connection_failed"
                     cur = {**entry.data, **user_input}
                     return self.async_show_form(
                         step_id="reconfigure",
@@ -204,7 +206,7 @@ class WsMCPServerConfigFlow(ConfigFlow, domain=DOMAIN):
                                 ): selector.TextSelector(),
                             }
                         ),
-                        description=description,
+                        description_placeholders={"error_msg": msg, "more_info_url": MORE_INFO_URL},
                         errors=errors,
                     )
             new_data = {**entry.data, **user_input}

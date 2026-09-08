@@ -22,7 +22,8 @@
     },
     "error": {
       "llm_api_required": "必须选择一组api",
-      "single_instance_allowed": "只能配置一个 MCP Server 实例"
+      "single_instance_allowed": "只能配置一个 MCP Server 实例",
+      "ma_connection_failed": "无法连接 Music Assistant：{error_msg}"
     },
     "abort": {
       "single_instance_allowed": "只能配置一个 MCP Server 实例"
