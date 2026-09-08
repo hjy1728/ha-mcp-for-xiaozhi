@@ -1,4 +1,4 @@
-## ha-mcp-for-xiaozhi
+## ha-mcp-for-xiaozhi+mass
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/c1pher-cn/ha-mcp-for-xiaozhi?style=for-the-badge&label=Stars&color=green)
 ![GitHub forks](https://img.shields.io/github/forks/c1pher-cn/ha-mcp-for-xiaozhi?style=for-the-badge&label=Forks&color=green)
