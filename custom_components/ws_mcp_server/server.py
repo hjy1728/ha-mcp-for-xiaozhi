@@ -17,6 +17,11 @@ from mcp.server import Server
 import voluptuous as vol
 from voluptuous_openapi import convert
 
+try:
+    from voluptuous_openapi import _Unsupported
+except ImportError:  # 不同版本可能不导出该类名
+    _Unsupported = None  # type: ignore[assignment]
+
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import llm
@@ -359,17 +364,50 @@ MA_TOOL_DEFS = [
 MA_TOOL_NAMES = {t.name for t in MA_TOOL_DEFS}
 
 
+def _sanitize_schema(node: Any) -> Any:
+    """递归把 voluptuous_openapi 的 _Unsupported 节点替换为宽松 schema。
+
+    HA 2026.9 起，部分工具（脚本/某些 intent）的参数 schema 会包含
+    _Unsupported 类型，直接序列化会抛 '_Unsupported' object is not subscriptable。
+    这里把这类节点降级为 {}（任意值均可），保住其余正常字段。
+    """
+    if _Unsupported is not None and isinstance(node, _Unsupported):
+        return {}
+    if isinstance(node, dict):
+        return {k: _sanitize_schema(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_sanitize_schema(v) for v in node]
+    return node
+
+
 def _format_tool(
     tool: llm.Tool, custom_serializer: Callable[[Any], Any] | None
 ) -> types.Tool:
     """Format tool specification."""
-    input_schema = convert(tool.parameters, custom_serializer=custom_serializer)
+    try:
+        input_schema = convert(tool.parameters, custom_serializer=custom_serializer)
+    except Exception as err:  # 单个工具转换失败不应拖垮整个 tools/list
+        _LOGGER.warning(
+            "MCP: 转换工具 %s 的参数 schema 失败，已降级为空参数: %s",
+            tool.name,
+            err,
+        )
+        input_schema = {}
+    # convert 可能整体返回 _Unsupported（整段 schema 不被支持）
+    if not isinstance(input_schema, dict):
+        _LOGGER.warning(
+            "MCP: 工具 %s 的参数 schema 不受支持(_Unsupported)，已降级为空参数",
+            tool.name,
+        )
+        input_schema = {}
+    input_schema = _sanitize_schema(input_schema)
     return types.Tool(
         name=tool.name,
         description=tool.description or "",
         inputSchema={
             "type": "object",
-            "properties": input_schema["properties"],
+            "properties": input_schema.get("properties", {}),
+            "required": input_schema.get("required", []),
         },
     )
 
@@ -434,7 +472,7 @@ async def create_server(
     async def list_tools() -> list[types.Tool]:
         """List available time tools."""
         llm_api = await get_api_instance()
-        _LOGGER.error("mcp list tools:%s )",llm_api.tools)
+        _LOGGER.debug("mcp list tools:%s )",llm_api.tools)
         tools = [_format_tool(tool, llm_api.custom_serializer) for tool in llm_api.tools]
         # 仅在配置了 MA token 时挂载 Music Assistant 工具
         if MA_API_TOKEN or (ma_config or {}).get("mass_token"):
@@ -449,7 +487,7 @@ async def create_server(
             return await _handle_ma_tool(name, arguments, ma_config)
         llm_api = await get_api_instance()
         tool_input = llm.ToolInput(tool_name=name, tool_args=arguments)
-        _LOGGER.error("Tool call: %s(%s)", tool_input.tool_name, tool_input.tool_args)
+        _LOGGER.debug("Tool call: %s(%s)", tool_input.tool_name, tool_input.tool_args)
 
         try:
             tool_response = await llm_api.async_call_tool(tool_input)
